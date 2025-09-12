@@ -1,3 +1,4 @@
 template-file-path: infrastructure.yml
-parameters: {}
+parameters:
+  GitHubOIDCRoleName: YourGitHubOidcRoleName
 tags: {}
