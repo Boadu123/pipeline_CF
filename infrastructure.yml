@@ -253,7 +253,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !Ref GitHubOIDCProvider
+              Federated: !GetAtt GitHubOIDCProvider.Arn
             Action: 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringLike:
