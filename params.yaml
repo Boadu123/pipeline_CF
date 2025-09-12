@@ -1,4 +1,0 @@
-template-file-path: infrastructure.yml
-parameters:
-  GitHubOIDCRoleName: YourGitHubOidcRoleName
-tags: {}
