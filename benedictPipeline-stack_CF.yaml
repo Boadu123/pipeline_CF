@@ -1,4 +1,0 @@
-template-file-path: benedict_pipeline_CF1
-parameters:
-  GitHubOIDCRoleName: YourGitHubOidcRoleName
-tags: {}
