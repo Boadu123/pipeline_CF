@@ -486,19 +486,15 @@ Resources:
 
         - Name: Deploy
           Actions:
-            - Name: DeployToECS
+            - Name: Deploy
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: CodeDeployToECS
+                Provider: CodeDeploy
                 Version: '1'
               Configuration:
                 ApplicationName: !Ref ProjectCodeDeployApplication
                 DeploymentGroupName: !Ref ProjectCodeDeployDeploymentGroup
-                TaskDefinitionTemplateArtifact: "SourceArtifact"
-                AppSpecTemplateArtifact: "SourceArtifact"
-                Image1ArtifactName: "SourceArtifact"
-                Image1ContainerName: "project-app"
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
