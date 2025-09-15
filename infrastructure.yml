@@ -253,6 +253,12 @@ Resources:
                   - 'ecr:CompleteLayerUpload'
                   - 'ecr:PutImage'
                 Resource: !GetAtt ProjectECRRepository.Arn
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:DescribeStackEvents'
+                  - 'cloudformation:ListStackResources'
+                Resource: '*'
 
   # ------------------------------------------------------------#
   # ECR, ECS, and ALB Resources
