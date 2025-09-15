@@ -194,6 +194,8 @@ Resources:
                   - ecs:DescribeServices
                   - iam:PassRole
                   - ecs:*
+                  - ecr:GetAuthorizationToken 
+                  - ecr:GetDownloadUrlForLayer
                 Resource: "*"
 
   ProjectCodeDeployRole:
@@ -471,7 +473,7 @@ Resources:
                 TaskDefinitionTemplateArtifact: "SourceArtifact"
                 AppSpecTemplateArtifact: "SourceArtifact"
                 Image1ArtifactName: "SourceArtifact"
-                Image1ContainerName: "IMAGE1_NAME"
+                Image1ContainerName: "project-app"
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
@@ -492,6 +494,8 @@ Resources:
             - SUCCESS
           repository-name:
             - !Ref ProjectECRRepository
+          image-tag:
+            - "latest"
       Targets:
         - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectCICDPipeline}"
           RoleArn: !GetAtt ProjectEventBridgeIAMRole.Arn
@@ -523,12 +527,12 @@ Outputs:
   ECRRepoUri:
     Description: The URI of the ECR repository
     Value: !GetAtt ProjectECRRepository.RepositoryUri
-ArtifactBucketName:
+  ArtifactBucketName:
     Description: The name of the S3 bucket for pipeline artifacts
     Value: !Ref ProjectArtifactBucket
-TaskExecutionRoleArn:
+  TaskExecutionRoleArn:
     Description: The ARN of the ECS Task Execution Role
     Value: !GetAtt ProjectTaskExecutionRole.Arn
-LogGroupName:
+  LogGroupName:
     Description: The name of the ECS Log Group
     Value: !Ref ProjectECSLogGroup
