@@ -406,35 +406,35 @@ Resources:
       ApplicationName: Project-ECS-App
       ComputePlatform: ECS
 
-  # ProjectCodeDeployDeploymentGroup:
-  #   Type: AWS::CodeDeploy::DeploymentGroup
-  #   Properties:
-  #     ApplicationName: !Ref ProjectCodeDeployApplication
-  #     DeploymentGroupName: Project-ECS-DG
-  #     ServiceRoleArn: !GetAtt ProjectCodeDeployRole.Arn
-  #     DeploymentStyle:
-  #       DeploymentType: BLUE_GREEN
-  #       DeploymentOption: WITH_TRAFFIC_CONTROL
-  #     BlueGreenDeploymentConfiguration:
-  #       TerminateBlueInstancesOnDeploymentSuccess:
-  #         Action: TERMINATE
-  #         TerminationWaitTimeInMinutes: 5
-  #       DeploymentReadyOption:
-  #         ActionOnTimeout: CONTINUE_DEPLOYMENT
-  #     AutoRollbackConfiguration:
-  #       Enabled: true
-  #       Events: [DEPLOYMENT_FAILURE]
-  #     ECSServices:
-  #       - ClusterName: !Ref ProjectECSCluster
-  #         ServiceName: !GetAtt ProjectECSService.Name
-  #     LoadBalancerInfo:
-  #       TargetGroupPairInfoList:
-  #         - TargetGroups:
-  #             - Name: !Ref ProjectTargetGroupBlue
-  #             - Name: !Ref ProjectTargetGroupGreen
-  #           ProdTrafficRoute:
-  #             ListenerArns:
-  #               - !Ref ProjectListener
+  ProjectCodeDeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref ProjectCodeDeployApplication
+      DeploymentGroupName: Project-ECS-DG
+      ServiceRoleArn: !GetAtt ProjectCodeDeployRole.Arn
+      DeploymentStyle:
+        DeploymentType: BLUE_GREEN
+        DeploymentOption: WITH_TRAFFIC_CONTROL
+      BlueGreenDeploymentConfiguration:
+        TerminateBlueInstancesOnDeploymentSuccess:
+          Action: TERMINATE
+          TerminationWaitTimeInMinutes: 5
+        DeploymentReadyOption:
+          ActionOnTimeout: CONTINUE_DEPLOYMENT
+      AutoRollbackConfiguration:
+        Enabled: true
+        Events: [DEPLOYMENT_FAILURE]
+      ECSServices:
+        - ClusterName: !Ref ProjectECSCluster
+          ServiceName: !GetAtt ProjectECSService.Name
+      LoadBalancerInfo:
+        TargetGroupPairInfoList:
+          - TargetGroups:
+              - Name: !Ref ProjectTargetGroupBlue
+              - Name: !Ref ProjectTargetGroupGreen
+            ProdTrafficRoute:
+              ListenerArns:
+                - !Ref ProjectListener
 
   ProjectEventRule:
     Type: AWS::Events::Rule
