@@ -406,35 +406,59 @@ Resources:
       ApplicationName: Project-ECS-App
       ComputePlatform: ECS
 
-  ProjectCodeDeployDeploymentGroup:
-    Type: AWS::CodeDeploy::DeploymentGroup
+  # ProjectCodeDeployDeploymentGroup:
+  #   Type: AWS::CodeDeploy::DeploymentGroup
+  #   Properties:
+  #     ApplicationName: !Ref ProjectCodeDeployApplication
+  #     DeploymentGroupName: Project-ECS-DG
+  #     ServiceRoleArn: !GetAtt ProjectCodeDeployRole.Arn
+  #     DeploymentStyle:
+  #       DeploymentType: BLUE_GREEN
+  #       DeploymentOption: WITH_TRAFFIC_CONTROL
+  #     BlueGreenDeploymentConfiguration:
+  #       TerminateBlueInstancesOnDeploymentSuccess:
+  #         Action: TERMINATE
+  #         TerminationWaitTimeInMinutes: 5
+  #       DeploymentReadyOption:
+  #         ActionOnTimeout: CONTINUE_DEPLOYMENT
+  #     AutoRollbackConfiguration:
+  #       Enabled: true
+  #       Events: [DEPLOYMENT_FAILURE]
+  #     ECSServices:
+  #       - ClusterName: !Ref ProjectECSCluster
+  #         ServiceName: !GetAtt ProjectECSService.Name
+  #     LoadBalancerInfo:
+  #       TargetGroupPairInfoList:
+  #         - TargetGroups:
+  #             - Name: !Ref ProjectTargetGroupBlue
+  #             - Name: !Ref ProjectTargetGroupGreen
+  #           ProdTrafficRoute:
+  #             ListenerArns:
+  #               - !Ref ProjectListener
+
+  ProjectEventRule:
+    Type: AWS::Events::Rule
     Properties:
-      ApplicationName: !Ref ProjectCodeDeployApplication
-      DeploymentGroupName: Project-ECS-DG
-      ServiceRoleArn: !GetAtt ProjectCodeDeployRole.Arn
-      DeploymentStyle:
-        DeploymentType: BLUE_GREEN
-        DeploymentOption: WITH_TRAFFIC_CONTROL
-      BlueGreenDeploymentConfiguration:
-        TerminateBlueInstancesOnDeploymentSuccess:
-          Action: TERMINATE
-          TerminationWaitTimeInMinutes: 5
-        DeploymentReadyOption:
-          ActionOnTimeout: CONTINUE_DEPLOYMENT
-      AutoRollbackConfiguration:
-        Enabled: true
-        Events: [DEPLOYMENT_FAILURE]
-      ECSServices:
-        - ClusterName: !Ref ProjectECSCluster
-          ServiceName: !GetAtt ProjectECSService.Name
-      LoadBalancerInfo:
-        TargetGroupPairInfoList:
-          - TargetGroups:
-              - Name: !Ref ProjectTargetGroupBlue
-              - Name: !Ref ProjectTargetGroupGreen
-            ProdTrafficRoute:
-              ListenerArns:
-                - !Ref ProjectListener
+      Description: "Rule to trigger CodePipeline on S3 deployment package upload"
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - "AWS API Call via CloudTrail"
+        detail:
+          eventSource:
+            - s3.amazonaws.com
+          eventName:
+            - PutObject
+          requestParameters:
+            bucketName:
+              - !Ref ProjectArtifactBucket
+            key:
+              - deployment_package.zip
+      Targets:
+        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectCICDPipeline}"
+          RoleArn: !GetAtt ProjectEventBridgeIAMRole.Arn
+          Id: "CodePipelineTarget"
 
   ProjectCICDPipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -446,15 +470,16 @@ Resources:
       Stages:
         - Name: Source
           Actions:
-            - Name: ECRSource
+            - Name: SourceFromS3
               ActionTypeId:
                 Category: Source
                 Owner: AWS
-                Provider: ECR
+                Provider: S3
                 Version: '1'
               Configuration:
-                RepositoryName: !Ref ProjectECRRepository
-                ImageTag: latest
+                S3Bucket: !Ref ProjectArtifactBucket
+                S3ObjectKey: deployment_package.zip
+                PollForSourceChanges: false
               OutputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
