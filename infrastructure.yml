@@ -440,25 +440,25 @@ Resources:
                 - !Ref ProjectListener
 
   ProjectEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "Rule to trigger CodePipeline on new ECR image push"
-      EventPattern:
-        source:
-          - aws.ecr
-        detail-type:
-          - "ECR Image Action"
-        detail:
+  Type: AWS::Events::Rule
+  Properties:
+    Description: "Rule to trigger CodePipeline on new ECR image push"
+    EventPattern:
+      source:
+        - aws.ecr
+      detail-type:
+        - "ECR Image Action"
+      detail:
         action-type:
           - PUSH
-        repository-name:
-          - my-project-app
         result:
           - SUCCESS
-      Targets:
-        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectCICDPipeline}"
-          RoleArn: !GetAtt ProjectEventBridgeIAMRole.Arn
-          Id: "CodePipelineTarget"
+        repository-name:
+          - my-project-app
+    Targets:
+      - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectCICDPipeline}"
+        RoleArn: !GetAtt ProjectEventBridgeIAMRole.Arn
+        Id: "CodePipelineTarget"
 
   ProjectCICDPipeline:
     Type: AWS::CodePipeline::Pipeline
