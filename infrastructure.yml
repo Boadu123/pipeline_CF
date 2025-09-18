@@ -442,7 +442,7 @@ Resources:
   ProjectEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Rule to trigger CodePipeline on S3 deployment package upload"
+      Description: "Rule to trigger CodePipeline on new ECR image push"
       EventPattern:
         source:
           - aws.ecr
@@ -452,7 +452,7 @@ Resources:
         action-type:
           - PUSH
         repository-name:
-          - !Ref ProjectECRRepository
+          - my-project-app
         result:
           - SUCCESS
       Targets:
