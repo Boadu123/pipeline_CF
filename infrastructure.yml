@@ -497,6 +497,7 @@ Resources:
                 DeploymentGroupName: !Ref ProjectCodeDeployDeploymentGroup
                 TaskDefinitionTemplateArtifact: "SourceArtifact"
                 AppSpecTemplateArtifact: "SourceArtifact"
+                AppSpecTemplatePath: "appspec.yaml"
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
