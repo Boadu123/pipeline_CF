@@ -490,7 +490,7 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: CodeDeploy
+                Provider: CodeDeployToECS
                 Version: '1'
               Configuration:
                 ApplicationName: !Ref ProjectCodeDeployApplication
