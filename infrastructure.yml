@@ -445,19 +445,16 @@ Resources:
       Description: "Rule to trigger CodePipeline on S3 deployment package upload"
       EventPattern:
         source:
-          - aws.s3
+          - aws.ecr
         detail-type:
-          - "AWS API Call via CloudTrail"
+          - "ECR Image Action"
         detail:
-          eventSource:
-            - s3.amazonaws.com
-          eventName:
-            - PutObject
-          requestParameters:
-            bucketName:
-              - !Ref ProjectArtifactBucket
-            key:
-              - deployment_package.zip
+        action-type:
+          - PUSH
+        repository-name:
+          - !Ref ProjectECRRepository
+        result:
+          - SUCCESS
       Targets:
         - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ProjectCICDPipeline}"
           RoleArn: !GetAtt ProjectEventBridgeIAMRole.Arn
