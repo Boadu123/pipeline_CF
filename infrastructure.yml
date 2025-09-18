@@ -241,6 +241,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - 'ecr:GetAuthorizationToken'
+                Resource: "*"
+              - Effect: Allow
+                Action:
                   - 'ecr:BatchCheckLayerAvailability'
                   - 'ecr:GetDownloadUrlForLayer'
                   - 'ecr:GetRepositoryPolicy'
