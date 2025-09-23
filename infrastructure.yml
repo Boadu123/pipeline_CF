@@ -344,7 +344,7 @@ Resources:
     Properties:
       ServiceName: project-app-service
       Cluster: !Ref ProjectECSCluster
-      DesiredCount: 0
+      DesiredCount: 1
       LaunchType: FARGATE
       TaskDefinition: !Ref ProjectTaskDefinition
       DeploymentController:
