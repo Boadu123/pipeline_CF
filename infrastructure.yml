@@ -152,8 +152,8 @@ Resources:
       VpcId: !Ref ProjectVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
+          FromPort: 80
+          ToPort: 80
           SourceSecurityGroupId: !Ref ProjectAlbSecurityGroup
 
   # ------------------------------------------------------------#
@@ -293,7 +293,7 @@ Resources:
         - Name: project-app
           Image: public.ecr.aws/ecs-sample-image/amazon-ecs-sample:latest
           PortMappings:
-            - ContainerPort: 8080
+            - ContainerPort: 80
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -312,7 +312,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       VpcId: !Ref ProjectVPC
-      Port: 8080
+      Port: 80
       Protocol: HTTP
       TargetType: ip
       HealthCheckPath: /
@@ -322,7 +322,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       VpcId: !Ref ProjectVPC
-      Port: 8080
+      Port: 80
       Protocol: HTTP
       TargetType: ip
       HealthCheckPath: /
