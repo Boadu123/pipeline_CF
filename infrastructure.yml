@@ -260,6 +260,15 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+      - PolicyName: AllowSecretsManagerAccess
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: arn:aws:secretsmanager:eu-central-1:771826808190:secret:DBSecret-Q4NsCJIhFD40-O1qlWL*
 
   ProjectCodePipelineRole:
     Type: AWS::IAM::Role
