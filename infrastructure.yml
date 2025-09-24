@@ -74,17 +74,6 @@ Resources:
         - Key: Name
           Value: Project-PrivateSubnetB
 
-  ProjectNatEIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-
-  ProjectNatGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt ProjectNatEIP.AllocationId
-      SubnetId: !Ref ProjectPublicSubnetA
-
   ProjectPublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -114,13 +103,6 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref ProjectVPC
-
-  ProjectPrivateRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref ProjectPrivateRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref ProjectNatGateway
 
   ProjectPrivateSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -155,6 +137,113 @@ Resources:
           FromPort: 8080
           ToPort: 8080
           SourceSecurityGroupId: !Ref ProjectAlbSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/16  # Allow HTTPS to VPC endpoints
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 10.0.0.0/16  # Allow PostgreSQL to RDS
+
+  ProjectRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow PostgreSQL from ECS only"
+      VpcId: !Ref ProjectVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ProjectECSServiceSecurityGroup
+
+# ------------------------------------------------------------#
+# VPC ENDPOINTS
+# ------------------------------------------------------------#
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow HTTPS from ECS to VPC Endpoints"
+      VpcId: !Ref ProjectVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref ProjectECSServiceSecurityGroup
+
+  # S3 Gateway Endpoint (for ECR and your photo bucket)
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ProjectVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref ProjectPrivateRouteTable
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "*"
+            Resource: "*"
+
+  # ECR API Interface Endpoint (for docker push/pull)
+  ECRApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ProjectVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      SubnetIds:
+        - !Ref ProjectPrivateSubnetA
+        - !Ref ProjectPrivateSubnetB
+
+  # ECR DKR Interface Endpoint (for docker registry)
+  ECRDkrEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ProjectVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      SubnetIds:
+        - !Ref ProjectPrivateSubnetA
+        - !Ref ProjectPrivateSubnetB
+
+  # CloudWatch Logs Interface Endpoint
+  LogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ProjectVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      SubnetIds:
+        - !Ref ProjectPrivateSubnetA
+        - !Ref ProjectPrivateSubnetB
+
+  # Secrets Manager Interface Endpoint (for database credentials)
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref ProjectVPC
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      SubnetIds:
+        - !Ref ProjectPrivateSubnetA
+        - !Ref ProjectPrivateSubnetB
 
   # ------------------------------------------------------------#
   # IAM Roles
@@ -256,6 +345,96 @@ Resources:
                   - 'ecr:CompleteLayerUpload'
                   - 'ecr:PutImage'
                 Resource: !GetAtt ProjectECRRepository.Arn
+  
+  # Add this NEW IAM Role after your existing roles
+  ProjectTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ApplicationPermissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt PhotoBucket.Arn
+                  - !Sub ${PhotoBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref DBSecret
+
+  # ------------------------------------------------------------#
+  # Data Storage Resources
+  # ------------------------------------------------------------#
+  # Private S3 Bucket for Photos
+  PhotoBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Database Secret (never hardcode credentials!)
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: "RDS PostgreSQL credentials for photo gallery"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "postgres"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-db-secret
+
+  # Database Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for RDS instance"
+      SubnetIds:
+        - !Ref ProjectPrivateSubnetA
+        - !Ref ProjectPrivateSubnetB
+
+  # RDS PostgreSQL Instance
+  PhotoGalleryDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub ${AWS::StackName}-postgres
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: "15.12"
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}::password}}'
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 50
+      StorageType: gp2
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !GetAtt ProjectRDSSecurityGroup.GroupId
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      DeletionProtection: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-database
 
   # ------------------------------------------------------------#
   # ECR, ECS, and ALB Resources
@@ -279,7 +458,8 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: project-app-cluster
-
+  
+  # Update your existing Task Definition to include Task Role and environment variables
   ProjectTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -289,11 +469,29 @@ Resources:
       Memory: "512"
       NetworkMode: awsvpc
       ExecutionRoleArn: !GetAtt ProjectTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt ProjectTaskRole.Arn  # NEW: Add this line
       ContainerDefinitions:
         - Name: project-app
           Image: public.ecr.aws/ecs-sample-image/amazon-ecs-sample:latest
           PortMappings:
             - ContainerPort: 8080
+          # ADD environment variables for Phase 2
+          Environment:
+            - Name: S3_BUCKET_NAME
+              Value: !Ref PhotoBucket
+            - Name: DB_HOST
+              Value: !GetAtt PhotoGalleryDB.Endpoint.Address
+            - Name: DB_PORT
+              Value: !GetAtt PhotoGalleryDB.Endpoint.Port
+            - Name: DB_NAME
+              Value: postgres
+            - Name: CLOUDFRONT_DOMAIN
+              Value: !GetAtt PhotoCloudFrontDistribution.DomainName
+          Secrets:
+            - Name: DB_USERNAME
+              ValueFrom: !Sub "${DBSecret}:username::"
+            - Name: DB_PASSWORD  
+              ValueFrom: !Sub "${DBSecret}:password::"
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -385,6 +583,96 @@ Resources:
         ScaleOutCooldown: 60
         PredefinedMetricSpecification:
           PredefinedMetricType: ECSServiceAverageCPUUtilization
+  # ------------------------------------------------------------#
+  # CloudFront for Private S3 Bucket (PhotoBucket)
+  # ------------------------------------------------------------#
+
+  # Origin Access Control (OAC)
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-OAC"
+        Description: "OAC for CloudFront to access private S3 bucket"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Cache Policy (Managed for static content)
+  ManagedCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${AWS::StackName}-CachePolicy"
+        DefaultTTL: 86400
+        MaxTTL: 31536000 
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  # CloudFront Distribution
+  PhotoCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "CloudFront distribution for ${AWS::StackName} photos"
+        Origins:
+          - Id: PhotoBucketOrigin
+            DomainName: !GetAtt PhotoBucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:  
+              OriginAccessIdentity: ""  
+        DefaultCacheBehavior:
+          TargetOriginId: PhotoBucketOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          CachePolicyId: !Ref ManagedCachePolicy
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  # Updated Bucket Policy to allow CloudFront access only
+  PhotoBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PhotoBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AllowCloudFrontRead"
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: "s3:GetObject"
+            Resource: !Sub "${PhotoBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${PhotoCloudFrontDistribution}"
+          - Sid: "AllowECSUploadFromVPCEndpoint"
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt ProjectTaskRole.Arn
+            Action: "s3:PutObject"
+            Resource: !Sub "${PhotoBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "aws:sourceVpce": !Ref S3GatewayEndpoint
 
   # ------------------------------------------------------------#
   # CI/CD Pipeline Resources
