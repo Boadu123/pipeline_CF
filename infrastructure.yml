@@ -268,7 +268,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: arn:aws:secretsmanager:eu-central-1:771826808190:secret:DBSecret-Q4NsCJIhFD40-O1qlWL*
+              Resource: !GetAtt DBSecret.Arn
 
   ProjectCodePipelineRole:
     Type: AWS::IAM::Role
