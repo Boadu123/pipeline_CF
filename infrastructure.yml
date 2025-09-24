@@ -481,7 +481,7 @@ Resources:
       TaskRoleArn: !GetAtt ProjectTaskRole.Arn  # NEW: Add this line
       ContainerDefinitions:
         - Name: project-app
-          Image: 771826808190.dkr.ecr.eu-central-1.amazonaws.com/my-project-app:latest
+          Image: public.ecr.aws/ecs-sample-image/amazon-ecs-sample:latest
           PortMappings:
             - ContainerPort: 8080
           # ADD environment variables for Phase 2
