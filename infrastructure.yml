@@ -268,7 +268,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !GetAtt DBSecret.Arn
+              Resource: !GetAtt DBSecret
 
   ProjectCodePipelineRole:
     Type: AWS::IAM::Role
@@ -382,7 +382,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt DBSecret.Arn
+                Resource: !GetAtt DBSecret
 
   # ------------------------------------------------------------#
   # Data Storage Resources
