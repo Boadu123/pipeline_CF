@@ -382,7 +382,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !Ref DBSecret
+                Resource: !GetAtt DBSecret.Arn
 
   # ------------------------------------------------------------#
   # Data Storage Resources
