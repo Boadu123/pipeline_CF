@@ -268,7 +268,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !GetAtt DBSecret
+              Resource: !Ref DBSecret
 
   ProjectCodePipelineRole:
     Type: AWS::IAM::Role
@@ -378,7 +378,7 @@ Resources:
                   - s3:ListBucket
                 Resource:
                   - !GetAtt PhotoBucket.Arn
-                  - !Sub ${PhotoBucket.Arn}/*
+                  - !Sub "${PhotoBucket.Arn}/*"
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
@@ -429,8 +429,8 @@ Resources:
       DBInstanceClass: db.t3.micro
       Engine: postgres
       EngineVersion: "15.12"
-      MasterUsername: !Sub "{{resolve:secretsmanager:${DBSecret}:SecretString:username}}"
-      MasterUserPassword: !Sub "{{resolve:secretsmanager:${DBSecret}:SecretString:password}}"
+      MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !Ref DBSecret, ":SecretString:username}}"]]
+      MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref DBSecret, ":SecretString:password}}"]]
       AllocatedStorage: 20
       MaxAllocatedStorage: 50
       StorageType: gp2
@@ -499,7 +499,7 @@ Resources:
           Secrets:
             - Name: DB_USERNAME
               ValueFrom: !Sub "${DBSecret}:username::"
-            - Name: DB_PASSWORD  
+            - Name: DB_PASSWORD
               ValueFrom: !Sub "${DBSecret}:password::"
           LogConfiguration:
             LogDriver: awslogs
@@ -681,7 +681,7 @@ Resources:
             Resource: !Sub "${PhotoBucket.Arn}/*"
             Condition:
               StringEquals:
-                "aws:sourceVpce": !Ref S3GatewayEndpoint
+                "aws:sourceVpce": !GetAtt S3GatewayEndpoint.Id
 
   # ------------------------------------------------------------#
   # CI/CD Pipeline Resources
