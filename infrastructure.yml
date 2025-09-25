@@ -496,11 +496,6 @@ Resources:
               Value: postgres
             - Name: CLOUDFRONT_DOMAIN
               Value: !GetAtt PhotoCloudFrontDistribution.DomainName
-          Secrets:
-            - Name: DB_USERNAME
-              ValueFrom: !Sub "${DBSecret}:username"
-            - Name: DB_PASSWORD
-              ValueFrom: !Sub "${DBSecret}:password"
           LogConfiguration:
             LogDriver: awslogs
             Options:
