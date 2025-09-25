@@ -677,12 +677,11 @@ Resources:
             Effect: Allow
             Principal:
               AWS: !GetAtt ProjectTaskRole.Arn
-            Action: "s3:PutObject"
+            Action: 
+            - "s3:PutObject"
+            - "s3:PutObjectAcl"
             Resource: !Sub "${PhotoBucket.Arn}/*"
-            Condition:
-              StringEquals:
-                "aws:sourceVpce": !GetAtt S3GatewayEndpoint.Id
-
+            
   # ------------------------------------------------------------#
   # CI/CD Pipeline Resources
   # ------------------------------------------------------------#
