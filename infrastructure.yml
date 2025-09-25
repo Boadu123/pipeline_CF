@@ -498,9 +498,9 @@ Resources:
               Value: !GetAtt PhotoCloudFrontDistribution.DomainName
           Secrets:
             - Name: DB_USERNAME
-              ValueFrom: !Sub "${DBSecret}:username::"
+              ValueFrom: !Sub "${DBSecret}:username"
             - Name: DB_PASSWORD
-              ValueFrom: !Sub "${DBSecret}:password::"
+              ValueFrom: !Sub "${DBSecret}:password"
           LogConfiguration:
             LogDriver: awslogs
             Options:
