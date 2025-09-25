@@ -834,3 +834,18 @@ Outputs:
   LogGroupName:
     Description: The name of the ECS Log Group
     Value: !Ref ProjectECSLogGroup
+  DBHost:
+    Description: RDS Database Host
+    Value: !GetAtt PhotoGalleryDB.Endpoint.Address
+  DBSecretArn:
+    Description: Database Secret ARN
+    Value: !Ref DBSecret
+  S3BucketName:
+    Description: S3 Bucket Name for Photos
+    Value: !Ref PhotoBucket
+  CloudFrontDomain:
+    Description: CloudFront Distribution Domain
+    Value: !GetAtt PhotoCloudFrontDistribution.DomainName
+  TaskRoleArn:
+    Description: ECS Task Role ARN
+    Value: !GetAtt ProjectTaskRole.Arn
