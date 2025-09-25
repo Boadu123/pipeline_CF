@@ -382,7 +382,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !GetAtt DBSecret
+                Resource: !Ref DBSecret
 
   # ------------------------------------------------------------#
   # Data Storage Resources
@@ -429,8 +429,8 @@ Resources:
       DBInstanceClass: db.t3.micro
       Engine: postgres
       EngineVersion: "15.12"
-      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}::username}}'
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}::password}}'
+      MasterUsername: !Sub "{{resolve:secretsmanager:${DBSecret}:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${DBSecret}:SecretString:password}}"
       AllocatedStorage: 20
       MaxAllocatedStorage: 50
       StorageType: gp2
