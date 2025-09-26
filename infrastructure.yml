@@ -424,13 +424,17 @@ Resources:
   # RDS PostgreSQL Instance
   PhotoGalleryDB:
     Type: AWS::RDS::DBInstance
+    DependsOn:
+    - DBSecret
+    - DBSubnetGroup
+    - ProjectRDSSecurityGroup
     Properties:
       DBInstanceIdentifier: !Sub ${AWS::StackName}-postgres
       DBInstanceClass: db.t3.micro
       Engine: postgres
       EngineVersion: "15.12"
-      MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !Ref DBSecret, ":SecretString:username}}"]]
-      MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref DBSecret, ":SecretString:password}}"]]
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
       AllocatedStorage: 20
       MaxAllocatedStorage: 50
       StorageType: gp2
@@ -494,8 +498,6 @@ Resources:
               Value: !GetAtt PhotoGalleryDB.Endpoint.Port
             - Name: DB_NAME
               Value: postgres
-            - Name: CLOUDFRONT_DOMAIN
-              Value: !GetAtt PhotoCloudFrontDistribution.DomainName
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -632,8 +634,7 @@ Resources:
           - Id: PhotoBucketOrigin
             DomainName: !GetAtt PhotoBucket.RegionalDomainName
             OriginAccessControlId: !Ref CloudFrontOAC
-            S3OriginConfig:  
-              OriginAccessIdentity: ""  
+            S3OriginConfig: {}
         DefaultCacheBehavior:
           TargetOriginId: PhotoBucketOrigin
           ViewerProtocolPolicy: redirect-to-https
