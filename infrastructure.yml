@@ -424,17 +424,13 @@ Resources:
   # RDS PostgreSQL Instance
   PhotoGalleryDB:
     Type: AWS::RDS::DBInstance
-    DependsOn:
-    - DBSecret
-    - DBSubnetGroup
-    - ProjectRDSSecurityGroup
     Properties:
       DBInstanceIdentifier: !Sub ${AWS::StackName}-postgres
       DBInstanceClass: db.t3.micro
       Engine: postgres
       EngineVersion: "15.12"
-      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
+      MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !Ref DBSecret, ":SecretString:username}}"]]
+      MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref DBSecret, ":SecretString:password}}"]]
       AllocatedStorage: 20
       MaxAllocatedStorage: 50
       StorageType: gp2
@@ -498,6 +494,8 @@ Resources:
               Value: !GetAtt PhotoGalleryDB.Endpoint.Port
             - Name: DB_NAME
               Value: postgres
+            - Name: CLOUDFRONT_DOMAIN
+              Value: !GetAtt PhotoCloudFrontDistribution.DomainName
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -542,28 +540,26 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref ProjectTargetGroupBlue
 
-  # ProjectECSService:
-  #   Type: AWS::ECS::Service
-  #   DependsOn: ProjectListener
-  #   DeletionPolicy: Retain
-  #   UpdateReplacePolicy: Retain
-  #   Properties:
-  #     ServiceName: project-app-service
-  #     Cluster: !Ref ProjectECSCluster
-  #     DesiredCount: 0
-  #     LaunchType: FARGATE
-  #     TaskDefinition: !Ref ProjectTaskDefinition
-  #     DeploymentController:
-  #       Type: CODE_DEPLOY
-  #     NetworkConfiguration:
-  #       AwsvpcConfiguration:
-  #         AssignPublicIp: DISABLED
-  #         SecurityGroups: [!Ref ProjectECSServiceSecurityGroup]
-  #         Subnets: [!Ref ProjectPrivateSubnetA, !Ref ProjectPrivateSubnetB]
-  #     LoadBalancers:
-  #       - ContainerName: project-app
-  #         ContainerPort: 8080
-  #         TargetGroupArn: !Ref ProjectTargetGroupBlue
+  ProjectECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ProjectListener
+    Properties:
+      ServiceName: project-app-service
+      Cluster: !Ref ProjectECSCluster
+      DesiredCount: 0
+      LaunchType: FARGATE
+      TaskDefinition: !Ref ProjectTaskDefinition
+      DeploymentController:
+        Type: CODE_DEPLOY
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: [!Ref ProjectECSServiceSecurityGroup]
+          Subnets: [!Ref ProjectPrivateSubnetA, !Ref ProjectPrivateSubnetB]
+      LoadBalancers:
+        - ContainerName: project-app
+          ContainerPort: 8080
+          TargetGroupArn: !Ref ProjectTargetGroupBlue
 
   # ------------------------------------------------------------#
   # Auto Scaling Resources
@@ -636,7 +632,8 @@ Resources:
           - Id: PhotoBucketOrigin
             DomainName: !GetAtt PhotoBucket.RegionalDomainName
             OriginAccessControlId: !Ref CloudFrontOAC
-            S3OriginConfig: {}
+            S3OriginConfig:  
+              OriginAccessIdentity: ""  
         DefaultCacheBehavior:
           TargetOriginId: PhotoBucketOrigin
           ViewerProtocolPolicy: redirect-to-https
@@ -721,9 +718,9 @@ Resources:
       AutoRollbackConfiguration:
         Enabled: true
         Events: [DEPLOYMENT_FAILURE]
-      # ECSServices:
-      #   - ClusterName: !Ref ProjectECSCluster
-      #     ServiceName: !GetAtt ProjectECSService.Name
+      ECSServices:
+        - ClusterName: !Ref ProjectECSCluster
+          ServiceName: !GetAtt ProjectECSService.Name
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
