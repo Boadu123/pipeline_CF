@@ -542,28 +542,28 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref ProjectTargetGroupBlue
 
-  ProjectECSService:
-    Type: AWS::ECS::Service
-    DependsOn: ProjectListener
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      ServiceName: project-app-service
-      Cluster: !Ref ProjectECSCluster
-      DesiredCount: 0
-      LaunchType: FARGATE
-      TaskDefinition: !Ref ProjectTaskDefinition
-      DeploymentController:
-        Type: CODE_DEPLOY
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
-          SecurityGroups: [!Ref ProjectECSServiceSecurityGroup]
-          Subnets: [!Ref ProjectPrivateSubnetA, !Ref ProjectPrivateSubnetB]
-      LoadBalancers:
-        - ContainerName: project-app
-          ContainerPort: 8080
-          TargetGroupArn: !Ref ProjectTargetGroupBlue
+  # ProjectECSService:
+  #   Type: AWS::ECS::Service
+  #   DependsOn: ProjectListener
+  #   DeletionPolicy: Retain
+  #   UpdateReplacePolicy: Retain
+  #   Properties:
+  #     ServiceName: project-app-service
+  #     Cluster: !Ref ProjectECSCluster
+  #     DesiredCount: 0
+  #     LaunchType: FARGATE
+  #     TaskDefinition: !Ref ProjectTaskDefinition
+  #     DeploymentController:
+  #       Type: CODE_DEPLOY
+  #     NetworkConfiguration:
+  #       AwsvpcConfiguration:
+  #         AssignPublicIp: DISABLED
+  #         SecurityGroups: [!Ref ProjectECSServiceSecurityGroup]
+  #         Subnets: [!Ref ProjectPrivateSubnetA, !Ref ProjectPrivateSubnetB]
+  #     LoadBalancers:
+  #       - ContainerName: project-app
+  #         ContainerPort: 8080
+  #         TargetGroupArn: !Ref ProjectTargetGroupBlue
 
   # ------------------------------------------------------------#
   # Auto Scaling Resources
@@ -721,9 +721,9 @@ Resources:
       AutoRollbackConfiguration:
         Enabled: true
         Events: [DEPLOYMENT_FAILURE]
-      ECSServices:
-        - ClusterName: !Ref ProjectECSCluster
-          ServiceName: !GetAtt ProjectECSService.Name
+      # ECSServices:
+      #   - ClusterName: !Ref ProjectECSCluster
+      #     ServiceName: !GetAtt ProjectECSService.Name
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
