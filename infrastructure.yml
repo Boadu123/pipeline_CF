@@ -545,6 +545,8 @@ Resources:
   ProjectECSService:
     Type: AWS::ECS::Service
     DependsOn: ProjectListener
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       ServiceName: project-app-service
       Cluster: !Ref ProjectECSCluster
@@ -562,8 +564,6 @@ Resources:
         - ContainerName: project-app
           ContainerPort: 8080
           TargetGroupArn: !Ref ProjectTargetGroupBlue
-      UpdatePolicy:
-        EnableVersionUpgrade: false
 
   # ------------------------------------------------------------#
   # Auto Scaling Resources
